@@ -1,3 +1,20 @@
+import pickle
+import random, os
+import numpy as np
+import torch
+
+
+def seed_everything(seed: int):
+
+    random.seed(seed)
+    os.environ["PYTHONHASHSEED"] = str(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.backends.cudnn.deterministic = False
+    torch.backends.cudnn.benchmark = True
+
+
 class Args(object):
     def __init__(self, **kwargs) -> None:
         self.__dict__.update(kwargs)
@@ -36,3 +53,14 @@ base_conf = {
     "smooth_factor": None,
     "early_stop": {"more_best": True, "patience": 5},
 }
+
+
+def save_pickle(path="filename.pickle", your_data=None):
+    with open(path, "wb") as handle:
+        pickle.dump(your_data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+def load_pickle(path="filename.pickle"):
+    with open(path, "rb") as handle:
+        unserialized_data = pickle.load(handle)
+    return unserialized_data

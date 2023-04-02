@@ -95,9 +95,11 @@ class SequenceCollator:
             if self.count_len_by is not None:
                 features["lengths"].append(len(sample[self.count_len_by]))
             for key in self.feature_names:
-                features[key].append(torch.as_tensor(sample[key]))
+                features[key].append(torch.tensor(sample[key]))
 
         for key in self.feature_names:
+            # print(key)
+            # print(features[key])
             features[key] = pad_sequence(
                 features[key], padding_value=self.default_values[key]
             ).T
@@ -144,45 +146,56 @@ def get_dataloader(
     shuffle=False,
     with_target=True,
     resample_n=None,
+    mapper_conf=None,
 ):
     if batch_size is None:
         batch_size = params.batch_size
     if num_workers is None:
         num_workers = params.num_workers
 
+    const_feats = (
+        ["user_id", "user_tr_count"]
+        + list(params.emb_params_const.keys())
+        + params.cont_features_const
+    )
+
     if with_target:
-        const_feats = ["user_id", "user_tr_count", params.target_col]
-    else:
-        const_feats = [
-            "user_id",
-            "user_tr_count",
-        ]
+        const_feats = const_feats + ["is_male", "age"]
+
     standart_processors = (
         FeatureProcessorConst(const_feats),
-        FeatureProcessorCallable(["score_dt_border"], prepr_id),
+        FeatureProcessorCallable(["price_nan"], lambda x: x + 1),
+        FeatureProcessorCallable(
+            ["url_host_enc"],
+            lambda x: mapper_conf["url_host_enc"].get(x, mapper_conf["nan_v"]) + 1,
+        ),
+        FeatureProcessorCallable(["age"], lambda x: x - 1),
     )
 
     test_feature_processor = FeatureProcessorCombiner(
         [*standart_processors], max_seq_len=params.seq_len
     )
 
-    feature_names = ["item_id"] + list(
-        set(
-            test_feature_processor.additional_column_names
-            + params.cont_features
-            + list(params.emb_params.keys())
-        )
+    feature_names = (
+        ["url_host_enc"]
+        + test_feature_processor.additional_column_names
+        + params.cont_features
+        + params.cont_features_const
+        + list(params.emb_params.keys())
+        + list(params.emb_params_const.keys())
     )
-    fasttext_cols = [f"fasttext_{i}" for i in range(256)]
-    feature_names = [col for col in feature_names if col not in fasttext_cols]
-    cont_feats = [col for col in params.cont_features if col not in fasttext_cols]
+    feature_names = list(set(feature_names))
 
+    # fasttext_cols = [f"fasttext_{i}" for i in range(256)]
+    # feature_names = [col for col in feature_names if col not in fasttext_cols]
+    # cont_feats = [col for col in params.cont_features if col not in fasttext_cols]
+    cont_feats = params.cont_features + params.cont_features_const
     resample_col = params.__dict__.get("target_col", "target")
 
     collator_down = SequenceCollator(
         feature_names=feature_names,
         continious_features=cont_feats,
-        count_len_by="item_id",
+        count_len_by="url_host_enc",
         resample_n=resample_n,
         resample_col=resample_col,
         fasttext_emb=fasttext_emb,

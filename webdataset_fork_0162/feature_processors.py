@@ -39,6 +39,7 @@ class FeatureProcessorConst(FeatureProcessorBase):
 
     def __call__(self, sample):
         for key in self.feature_names:
+
             if type(sample[key]) in (list, np.ndarray):
                 sample[key] = np.asarray(sample[key][:1])
             else:
@@ -72,8 +73,9 @@ class FeatureProcessorCombiner:
         self.max_seq_len = max_seq_len
 
     def __call__(self, samples: Generator):
-
+        # print(samples)
         for sample in samples:
+            # print(sample["user_id"])
             if self.filter_zero_length and (
                 sample["user_tr_count"] == 0 or check_for_zero_len(sample)
             ):
@@ -82,9 +84,9 @@ class FeatureProcessorCombiner:
                 if type(sample[key]) in (list, np.ndarray):
                     # берем последние записи - сортируй по возрастанию даты
                     sample[key] = sample[key][-self.max_seq_len :]
-                for processor in self.feature_processors:
-                    sample = processor(sample)
-                    if sample is None:
-                        break
-                if sample is not None:
-                    yield sample
+            for processor in self.feature_processors:
+                sample = processor(sample)
+                if sample is None:
+                    break
+            if sample is not None:
+                yield sample

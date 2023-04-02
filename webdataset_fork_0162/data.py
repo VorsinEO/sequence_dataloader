@@ -1,12 +1,16 @@
 import os
-import pyarrow
+
+# import pyarrow
+import pyarrow.parquet as pq
 import numpy as np
 from collections import namedtuple
 
 
 def read_parquet(source, columns=None):
-    dataframe = pyarrow.parquet.read_table(
-        source=source, columns=columns, use_legacy_dataset=True
+    dataframe = pq.read_table(
+        source=source,
+        columns=columns,
+        # use_legacy_dataset=True
     ).to_pandas()
     return dataframe
 
@@ -31,4 +35,4 @@ def read_table(shards, file_type, columns=None):
 def chain_dataframe(dataframes):
     for df in dataframes:
         for i in range(df.shape[0]):
-            yield df.iloc[0].to_dict()
+            yield df.iloc[i].to_dict()
