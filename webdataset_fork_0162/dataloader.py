@@ -144,6 +144,7 @@ def get_dataloader(
     num_workers=None,
     fasttext_emb=None,
     shuffle=False,
+    shuffle_buf_size=1,
     with_target=True,
     resample_n=None,
     mapper_conf=None,
@@ -160,16 +161,17 @@ def get_dataloader(
     )
 
     if with_target:
-        const_feats = const_feats + ["is_male", "age"]
+        #const_feats = const_feats + ["is_male", "age"]
+        const_feats = const_feats + ["target"]
 
     standart_processors = (
         FeatureProcessorConst(const_feats),
-        FeatureProcessorCallable(["price_nan"], lambda x: x + 1),
-        FeatureProcessorCallable(
-            ["url_host_enc"],
-            lambda x: mapper_conf["url_host_enc"].get(x, mapper_conf["nan_v"]) + 1,
-        ),
-        FeatureProcessorCallable(["age"], lambda x: x - 1),
+        #FeatureProcessorCallable(["price_nan"], lambda x: x + 1),
+        #FeatureProcessorCallable(
+        #    ["url_host_enc"],
+        #    lambda x: mapper_conf["url_host_enc"].get(x, mapper_conf["nan_v"]) + 1,
+        #),
+        #FeatureProcessorCallable(["age"], lambda x: x - 1),
     )
 
     test_feature_processor = FeatureProcessorCombiner(
@@ -177,8 +179,8 @@ def get_dataloader(
     )
 
     feature_names = (
-        ["url_host_enc"]
-        + test_feature_processor.additional_column_names
+        #["url_host_enc"]
+        test_feature_processor.additional_column_names
         + params.cont_features
         + params.cont_features_const
         + list(params.emb_params.keys())
@@ -195,7 +197,7 @@ def get_dataloader(
     collator_down = SequenceCollator(
         feature_names=feature_names,
         continious_features=cont_feats,
-        count_len_by="url_host_enc",
+        count_len_by="score_dt_border",
         resample_n=resample_n,
         resample_col=resample_col,
         fasttext_emb=fasttext_emb,
@@ -208,6 +210,7 @@ def get_dataloader(
         batch_size,
         shuffle,
         hdfs=False,
+        shuffle_buf_size=shuffle_buf_size
     )
 
     test_down_loader = inf_loop(
